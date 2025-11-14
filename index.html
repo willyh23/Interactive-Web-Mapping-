@@ -84,104 +84,76 @@
         </div>
     </div>
     <div class='map-overlay' id='legend'></div>
-    <script>
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: 'https://tiles.openfreemap.org/styles/positron', 
-            zoom: 6,
-            center: [-120.5, 47.3] //WA center
-        });
-        map.getCanvas().style.cursor = 'default'
+    
+<script>
+const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/positron',
+    zoom: 6,
+    center: [-120.5, 47.3] // WA center
+});
+map.getCanvas().style.cursor = 'default';
 
+async function geojsonFetch() {
+    let response = await fetch('assets/wa-covid-data-102521.geojson');
+    let covidData = await response.json();
 
-        async function geojsonFetch() {
-            let response = await fetch('assets/wa-covid-data-102521.geojson');
-            let stateData = await response.json();
+    map.on('load', function loadingData() {
+        // Add source and layer
+        map.addSource('covidData', { type: 'geojson', data: covidData });
 
-            map.on('load', function loadingData() {
-                map.addSource('covidData', {
-                    type: 'geojson',
-                    data: covidData
-                });
-
-                map.addLayer({
-                    'id': 'covid-layer',
-                    'type': 'fill',
-                    'source': 'covidData',
-                    'paint': {
-                        'fill-color': [
-                            'step',
-                            ['get', 'deathPer10K'],
-                            '#FFEDA0', 5,
-                            '#FED976', 10,
-                            '#FEB24C', 15,
-                            '#FD8D3C', 20,
-                            '#FC4E2A', 25,
-                            '#E31A1C', 30,
-                            '#BD0026', 35,
-                            '#800026'
-                        ],
-                        'fill-outline-color': '#BBBBBB',
-                        'fill-opacity': 0.7
-                    }
-                });
-            });
-
-            // 3.4 Add Legend
-            const layers = [
-                '0-4',
-                '5-9',
-                '10-14',
-                '15-19',
-                '20-24',
-                '25-29',
-                '30-34',
-                '35+'
-                ];
-            const colors = [
-                '#FFEDA070',
-                '#FED97670',
-                '#FEB24C70',
-                '#FD8D3C70',
-                '#FC4E2A70',
-                '#E31A1C70',
-                '#BD002670',
-                '#80002670'
-            ];
-
-            const legend = document.getElementById('legend');
-            legend.innerHTML = "<b>Death Rate<br>(per 10k)</b><br><br>";
-
-
-            layers.forEach((layer, i) => {
-                const color = colors[i];
-                const item = document.createElement('div');
-                const key = document.createElement('span');
-                key.className = 'legend-key';
-                key.style.backgroundColor = colors[i];
-
-                const value = document.createElement('span');
-                value.innerHTML = layer;
-                item.appendChild(key);
-                item.appendChild(value);
-                legend.appendChild(item);  
-
-            map.on('mousemove', ({ point }) => {
-                const state = map.queryRenderedFeatures(point, {
-                    layers: ['covid-layer']
-                });
-                document.getElementById('text-description').innerHTML = county.length ?
-                    `<h3>${county[0].properties.name}</h3>
-                    <p><strong>${county[0].properties.deathPer10k}</strong> deaths per 10k people</p>`:
-                    `<p>Hover over a county!</p>`;
-            });
+        map.addLayer({
+            'id': 'covid-layer',
+            'type': 'fill',
+            'source': 'covidData',
+            'paint': {
+                'fill-color': [
+                    'step',
+                    ['get', 'deathPer10k'],
+                    '#FFEDA0', 5,
+                    '#FED976', 10,
+                    '#FEB24C', 15,
+                    '#FD8D3C', 20,
+                    '#FC4E2A', 25,
+                    '#E31A1C', 30,
+                    '#BD0026', 35,
+                    '#800026'
+                ],
+                'fill-outline-color': '#BBBBBB',
+                'fill-opacity': 0.7
+            }
         });
 
+        // ✅ Add Legend
+        const layers = ['0-4','5-9','10-14','15-19','20-24','25-29','30-34','35+'];
+        const colors = ['#FFEDA070','#FED97670','#FEB24C70','#FD8D3C70','#FC4E2A70','#E31A1C70','#BD002670','#80002670'];
+        const legend = document.getElementById('legend');
+        legend.innerHTML = "<b>Death Rate<br>(per 10k)</b><br><br>";
 
-        }
-        geojsonFetch();
-    </script>
+        layers.forEach((layer, i) => {
+            const item = document.createElement('div');
+            const key = document.createElement('span');
+            key.className = 'legend-key';
+            key.style.backgroundColor = colors[i];
+            const value = document.createElement('span');
+            value.innerHTML = layer;
+            item.appendChild(key);
+            item.appendChild(value);
+            legend.appendChild(item);
+        });
 
+        // ✅ Hover interaction
+        map.on('mousemove', ({ point }) => {
+            const county = map.queryRenderedFeatures(point, { layers: ['covid-layer'] });
+            document.getElementById('text-description').innerHTML = county.length ?
+                `<h3>${county[0].properties.name}</h3>
+                 <p><strong>${county[0].properties.deathPer10k}</strong> deaths per 10k people</p>` :
+                `<p>Hover over a county!</p>`;
+        });
+    }); 
+} 
+
+geojsonFetch();
+</script>
 </body>
-
 </html>
